@@ -1,3 +1,0 @@
-/home/marco/Programming/CLionProjects/Kmeans-OpenMP/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/marco/Programming/CLionProjects/Kmeans-OpenMP/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/marco/Programming/CLionProjects/Kmeans-OpenMP/cmake-build-debug/CMakeFiles/Kmeans-OpenMP.dir
