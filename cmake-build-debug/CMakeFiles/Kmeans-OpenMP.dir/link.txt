@@ -1,1 +1,0 @@
-/usr/bin/c++   -std=c++11 -fopenmp -O0 -g   CMakeFiles/Kmeans-OpenMP.dir/KMeans_Sequential.cpp.o CMakeFiles/Kmeans-OpenMP.dir/KMeans_OpenMP.cpp.o CMakeFiles/Kmeans-OpenMP.dir/Test.cpp.o CMakeFiles/Kmeans-OpenMP.dir/KMeans_OpenMP2.cpp.o  -o Kmeans-OpenMP 
