@@ -5,11 +5,12 @@
 #include <fstream>
 #include <chrono>
 #include <numeric>
+#include <algorithm>
 #include "K_Means_Sequential.h"
 #include "KMeans_OpenMP.h"
 #include "KMeans_OpenMP2.h"
-
-
+#include "K_means_Cuda.cuh"
+#include "cuda_runtime.h"
 
 
 int main(int argc, char* argv[]) {
@@ -71,17 +72,25 @@ int main(int argc, char* argv[]) {
 
 
 
+    //PRINT INITIAL CENTROIDS
+    //Print centroids
+    std::cout << "PRINT INITIAL CENTROIDS after then dataset is load \n";
+    for (int i=0; i < k; i++){
+        for(int j=0; j < dimPoint; j++){
+            std::cout << centroids[i].dimensions[j] << " ";
+        }
+        std::cout << std::endl;
+    }
 
 
 
 
-
-    //EXECUTION OF SEQUENTIAL Kmeans
+    //************************EXECUTION OF SEQUENTIAL Kmeans************************
     //CHRONO START
     auto start = std::chrono::high_resolution_clock::now();
 
-    std::tie(output_Dataset, output_Centroids) = sequential_kmeans(dataset, centroids, k);
-    //std::tie(output_Dataset, output_Centroids) = openMP_kmeans2(dataset, centroids, k);
+    //std::tie(output_Dataset, output_Centroids) = sequential_kmeans(dataset, centroids, k);
+
 
 
     //CHRONO END
@@ -90,7 +99,10 @@ int main(int argc, char* argv[]) {
     std::chrono::duration<double> elapsed = finish - start;
     std::cout << "SEQUENTIAL Elapsed time : " << elapsed.count() << " s\n \n";
 
+
+/*
     //Print centroids
+
     for (int i=0; i < k; i++){
         for(int j=0; j < dimPoint; j++){
             std::cout << output_Centroids[i].dimensions[j] << " ";
@@ -99,7 +111,8 @@ int main(int argc, char* argv[]) {
     }
 
 
-    //Execution of OpenMP Kmeans
+
+    //************************Execution of OpenMP Kmeans************************
     //CHRONO START
     start = std::chrono::high_resolution_clock::now();
 
@@ -122,7 +135,7 @@ int main(int argc, char* argv[]) {
         std::cout << std::endl;
     }
 
-    //Execution of OpenMP Kmeans 2
+    //************************Execution of OpenMP Kmeans 2************************
     //CHRONO START
     start = std::chrono::high_resolution_clock::now();
 
@@ -145,6 +158,95 @@ int main(int argc, char* argv[]) {
         std::cout << std::endl;
     }
 
+
+
+*/
+
+    //************************CUDA************************
+
+
+    auto size_dataset = numPoint*dimPoint*sizeof(double);
+    auto size_centroids = k*dimPoint*sizeof(double);
+
+    double *hostDataset;
+    hostDataset = (double *) malloc(size_dataset);
+    double *hostCentroids;
+    hostCentroids = (double *) malloc(size_centroids);
+
+    double *deviceDataset, *deviceCentroids;
+
+    //Moove dataset and centroids from vector to simple matrix
+
+    for(auto i = 0; i<numPoint; i++){
+        for(auto j = 0; j<dimPoint; j++){
+            hostDataset[i*dimPoint+j] = dataset[i].dimensions[j];
+        }
+    }
+
+    for(auto i = 0; i<k; i++){
+        for(auto j = 0; j<dimPoint; j++){
+            hostCentroids[i*dimPoint+j] = centroids[i].dimensions[j];
+        }
+    }
+
+
+
+    //ALLOCATE AND COPY DATASET AND CENTROIDS TO DEVICE
+    cudaMalloc((void **) &deviceDataset, size_dataset);
+    cudaMemcpy(deviceDataset, hostDataset, size_dataset, cudaMemcpyHostToDevice);
+    cudaMalloc((void **) &deviceCentroids, size_centroids);
+    cudaMemcpy(deviceCentroids, hostCentroids, size_centroids, cudaMemcpyHostToDevice);
+
+    short * hostAssignment;
+    hostAssignment = (short *) malloc(numPoint * sizeof(short));
+
+
+
+    //CHRONO START
+    start = std::chrono::high_resolution_clock::now();
+
+    //KERNEL LAUNCH
+    std::tie(deviceCentroids, hostAssignment) = cuda_KMeans(deviceDataset, deviceCentroids, numPoint, k, dimPoint);
+
+    //CHRONO END
+    finish = std::chrono::high_resolution_clock::now();
+    //CHRONO TIME CALCULATION AND PRINT
+    elapsed = finish - start;
+    std::cout << "CUDA Elapsed time: " << elapsed.count() << " s\n \n";
+
+
+    cudaMemcpy(hostCentroids, deviceCentroids, size_centroids, cudaMemcpyDeviceToHost);
+
+
+    //PRINT FINAL CENTROIDS
+    std::cout << "PRINT FINAL CUDA CENTROIDS \n";
+    for(auto i = 0; i<k; i++){
+        for(auto j = 0; j<dimPoint; j++){
+            std::cout << hostCentroids[i*dimPoint+j] << " ";
+        }
+        std::cout << "\n";
+    }
+
+
+    cudaFree(deviceDataset);
+    cudaFree(deviceCentroids);
+
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("Error: %s\n", cudaGetErrorString(err));
+    }
+
+
+    free(hostDataset);
+    free(hostCentroids);
+    free(hostAssignment);
+
+
     return 0;
 }
+
+
+
+
+
 

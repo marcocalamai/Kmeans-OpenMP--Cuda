@@ -1,3 +1,4 @@
+
 #include <cmath>
 #include "K_Means_Sequential.h"
 
@@ -11,8 +12,8 @@ bool checkEqualClusters(std::vector<Point> dataset, std::vector<Point> oldDatase
     }
     return true;
 }
-void
-Assignement(std::vector<Point> &dataset, std::vector<Point> &centroids, int k, const unsigned long numPoint,
+
+void Assignement(std::vector<Point> &dataset, std::vector<Point> &centroids, int k, const unsigned long numPoint,
             const unsigned long dimPoint, int clusterLabel, double distance, double minDistance) {
     for (int i = 0; i < numPoint; i++) {
         minDistance = std::numeric_limits<double>::max();
