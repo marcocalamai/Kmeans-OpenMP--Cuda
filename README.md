@@ -7,7 +7,7 @@ Note: KMeans_OpenMP2.cpp is a partial parallelization of K-Means algorithm (only
 
 1. Clone the repo.
 ```sh
-git clone https://github.com/marcocalamai/Kmeans-OpenMP--Cuda
+git clone https://github.com/marcocalamai/Parallel-Kmeans-OpenMP-and-Cuda
 ```
 2. Build with CMake.
 
