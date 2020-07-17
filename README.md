@@ -1,4 +1,4 @@
-# Parallel Computing Project
+# Parallel K-Means
 Project for Parallel Computing course. Sequential C++ and parallel implementation with Open-MP and CUDA of K-Means algorithm. Time comparison and speed-up can be found [Report](https://github.com/marcocalamai/Kmeans-OpenMP--Cuda/blob/master/Report/Report.pdf)
 
 Note: KMeans_OpenMP2.cpp is a partial parallelization of K-Means algorithm (only assignment phase parallelized). 
