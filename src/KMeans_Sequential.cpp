@@ -1,6 +1,7 @@
 
 #include <cmath>
 #include "K_Means_Sequential.h"
+#include <iostream>
 
 
 
@@ -13,8 +14,8 @@ bool checkEqualClusters(std::vector<Point> dataset, std::vector<Point> oldDatase
     return true;
 }
 
-void Assignement(std::vector<Point> &dataset, std::vector<Point> &centroids, int k, const unsigned long numPoint,
-            const unsigned long dimPoint, int clusterLabel, double distance, double minDistance) {
+void Assignment(std::vector<Point> &dataset, std::vector<Point> &centroids, int k, const unsigned long numPoint,
+                const unsigned long dimPoint, int clusterLabel, double distance, double minDistance) {
     for (int i = 0; i < numPoint; i++) {
         minDistance = std::numeric_limits<double>::max();
         for (int j = 0; j < k; j++) {
@@ -37,7 +38,11 @@ void UpdateCentroids(std::vector<Point> &dataset, std::vector<Point> &centroids,
                      const unsigned long numPoint, const unsigned long dimPoint, std::vector<int> &count) {
     std::fill(count.begin(), count.end(), 0);
     for (int j = 0; j < k; j++) {
-        //centroids[j].dimensions = zeros;
+        //centroids[j].dimensions = zerosc
+        //
+        //
+        //
+        // ;
         std::fill(centroids[j].dimensions.begin(), centroids[j].dimensions.end(), 0);
     }
 
@@ -58,6 +63,7 @@ void UpdateCentroids(std::vector<Point> &dataset, std::vector<Point> &centroids,
 }
 
 std::tuple<std::vector<Point>, std::vector<Point>> sequential_kmeans(std::vector<Point> dataset, std::vector<Point> centroids, int k){
+    int c = 0;
     bool convergence = false, firstIteration = true;
     std::vector<Point> oldDataset;
     //Number of dataset points
@@ -74,11 +80,12 @@ std::tuple<std::vector<Point>, std::vector<Point>> sequential_kmeans(std::vector
 
 
         //Find the nearest centroid and assign the point to that cluster
-        Assignement(dataset, centroids, k, numPoint, dimPoint, clusterLabel, distance, minDistance);
+        Assignment(dataset, centroids, k, numPoint, dimPoint, clusterLabel, distance, minDistance);
 
         //Centroids update
         //First, initialize centroids to zero before update their values
         UpdateCentroids(dataset, centroids, k, numPoint, dimPoint, count);
+        c++;
 
 
         if (!firstIteration && checkEqualClusters(dataset, oldDataset, numPoint)){
@@ -88,7 +95,9 @@ std::tuple<std::vector<Point>, std::vector<Point>> sequential_kmeans(std::vector
             oldDataset = dataset;
             firstIteration = false;
         }
+
     }
+    std::cout << "Numero di iterazioni: " << c << " \n";
     return{dataset, centroids};
 }
 

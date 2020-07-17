@@ -13,6 +13,15 @@ __constant__ short constK;
 __constant__ int constNumPoint;
 __constant__ short constDimPoint;
 
+void CheckCudaErrorAux(const char *file, unsigned line, const char *statement, cudaError_t err) {
+    if (err == cudaSuccess) {
+        return;
+    }
+    std::cerr << statement << " returned " << cudaGetErrorString(err) << "(" << err << ") at " << file << ":" << line << std::endl;
+    exit(1);
+}
+
+
 
 void print_device(double *device, int row, int col){
     double *host;
@@ -55,7 +64,6 @@ void print_device(int *device, int row, int col){
     }
     std::cout << std::endl;
 }
-
 
 
 
@@ -199,22 +207,22 @@ void update_centroids2(double * deviceCentroids, const int * deviceCount){
 
 __host__
 std::tuple<double *, short *>cuda_KMeans(double * deviceDataset, double * deviceCentroids, const int numPoint, const short k, const short dimPoint){
-    int c = 0;
+    //int c = 0;
     dim3 dimBlockDistance(2, 512, 1);
     dim3 dimGridDistance(ceil(k/2.0), ceil(numPoint/512.0), 1);
 
-    dim3 dimBlockInitialize(32, 32, 1);
-    dim3 dimGridInitialize(ceil(dimPoint / 32.0), ceil(k / 32.0), 1);
+    dim3 dimBlockInitialize(16, 16, 1);
+    dim3 dimGridInitialize(ceil(dimPoint / 16.0), ceil(k / 16.0), 1);
 
     dim3 dimBlockComputeSum(2, 512, 1);
     dim3 dimGridComputeSum(ceil(dimPoint / 2.0), ceil(numPoint / 512.0), 1);
 
-    dim3 dimBlockUpdateCentroids(32, 32, 1);
-    dim3 dimGridUpdateCentroids(ceil(dimPoint / 32.0), ceil(k / 32.0), 1);
+    dim3 dimBlockUpdateCentroids(16, 16, 1);
+    dim3 dimGridUpdateCentroids(ceil(dimPoint / 16.0), ceil(k / 16.0), 1);
 
-    cudaMemcpyToSymbol(constK, &k, sizeof(short));
-    cudaMemcpyToSymbol(constNumPoint, &numPoint, sizeof(int));
-    cudaMemcpyToSymbol(constDimPoint, &dimPoint, sizeof(short));
+    CUDA_CHECK_RETURN(cudaMemcpyToSymbol(constK, &k, sizeof(short)));
+    CUDA_CHECK_RETURN(cudaMemcpyToSymbol(constNumPoint, &numPoint, sizeof(int)));
+    CUDA_CHECK_RETURN(cudaMemcpyToSymbol(constDimPoint, &dimPoint, sizeof(short)));
     //constant_dimPoint = dimPoint;
     bool convergence = false;
 
@@ -224,17 +232,14 @@ std::tuple<double *, short *>cuda_KMeans(double * deviceDataset, double * device
     short * hostAssignment;
     hostAssignment = (short *) malloc(numPoint * sizeof(short));
 
-    short * deviceOldAssignment;
-    cudaMalloc((void **) &deviceOldAssignment, numPoint*sizeof(short));
-    short * deviceAssignment;
-    cudaMalloc((void **) &deviceAssignment, numPoint*sizeof(short));
-    double * deviceDistances;
-    cudaMalloc((void**) &deviceDistances, numPoint*k*sizeof(double));
-    int * deviceCount;
-    cudaMalloc((void**) &deviceCount, k*sizeof(int));
 
-    //initialize_assignment<<<ceil(numPoint/1024.0), 1024>>>(deviceOldAssignment);
-    //cudaDeviceSynchronize();
+    short * deviceAssignment;
+    CUDA_CHECK_RETURN(cudaMalloc((void **) &deviceAssignment, numPoint*sizeof(short)));
+    double * deviceDistances;
+    CUDA_CHECK_RETURN(cudaMalloc((void**) &deviceDistances, numPoint*k*sizeof(double)));
+    int * deviceCount;
+    CUDA_CHECK_RETURN(cudaMalloc((void**) &deviceCount, k*sizeof(int)));
+
 
 
     while (!convergence){
@@ -251,13 +256,13 @@ std::tuple<double *, short *>cuda_KMeans(double * deviceDataset, double * device
 
         //print_device(deviceCentroids, k,  dimPoint);
         //return{deviceCentroids, hostAssignment};
-        cudaMemset(deviceCount, 0, k*sizeof(int));
+        CUDA_CHECK_RETURN(cudaMemset(deviceCount, 0, k*sizeof(int)));
         //print_device(deviceCount, k,  1);
         cudaDeviceSynchronize();
         //Compute all sum for centroids
 
-        //compute_sum<<<dimGridComputeSum,dimBlockComputeSum>>>(deviceDataset, deviceCentroids, deviceAssignment, deviceCount);
-        compute_sum2<<<ceil(numPoint/1024.0), 1024>>>(deviceDataset, deviceCentroids, deviceAssignment, deviceCount);
+        compute_sum<<<dimGridComputeSum,dimBlockComputeSum>>>(deviceDataset, deviceCentroids, deviceAssignment, deviceCount);
+        //compute_sum2<<<ceil(numPoint/1024.0), 1024>>>(deviceDataset, deviceCentroids, deviceAssignment, deviceCount);
 
         cudaDeviceSynchronize();
         //printf("\n STAMPA DI TEST \n");
@@ -267,13 +272,12 @@ std::tuple<double *, short *>cuda_KMeans(double * deviceDataset, double * device
         //Compute mean: division for count
 
 
-        //update_centroids<<<dimGridUpdateCentroids,dimBlockUpdateCentroids>>>(deviceCentroids,deviceCount);
-        update_centroids2<<<dimGridUpdateCentroids,dimBlockUpdateCentroids>>>(deviceCentroids,deviceCount);
+        update_centroids<<<dimGridUpdateCentroids,dimBlockUpdateCentroids>>>(deviceCentroids,deviceCount);
+        //update_centroids2<<<dimGridUpdateCentroids,dimBlockUpdateCentroids>>>(deviceCentroids,deviceCount);
 
         cudaDeviceSynchronize();
 
-        cudaMemcpy(hostAssignment, deviceAssignment, numPoint*sizeof(short), cudaMemcpyDeviceToHost);
-        cudaMemcpy(hostOldAssignment, deviceOldAssignment, numPoint*sizeof(short), cudaMemcpyDeviceToHost);
+        CUDA_CHECK_RETURN(cudaMemcpy(hostAssignment, deviceAssignment, numPoint*sizeof(short), cudaMemcpyDeviceToHost));
 
 
 /*
@@ -289,23 +293,19 @@ std::tuple<double *, short *>cuda_KMeans(double * deviceDataset, double * device
         }
         std::cout << "\n" ;
 */
-        c ++;
+        //c ++;
 
 
         if (checkEqualAssignment(hostOldAssignment, hostAssignment, numPoint)){
             convergence = true;
-
         }
         else{
-            cudaMemcpy(deviceOldAssignment, deviceAssignment, numPoint*sizeof(short), cudaMemcpyDeviceToDevice);
+            CUDA_CHECK_RETURN(cudaMemcpy(hostOldAssignment, deviceAssignment, numPoint*sizeof(short), cudaMemcpyDeviceToHost));
         }
         //printf("\n");
 
-
     }
-    std::cout << "Numero di iterazioni: " << c << " \n";
-
+    //std::cout << "Numero di iterazioni: " << c << " \n";
 
     return{deviceCentroids, hostAssignment};
-
 }

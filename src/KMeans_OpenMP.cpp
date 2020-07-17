@@ -67,19 +67,24 @@ std::tuple<std::vector<Point>,std::vector<Point>> openMP_kmeans(std::vector<Poin
             //std::fill(privateCount.begin(), privateCount.end(), 0);
 
 
-#pragma omp single
-            std::fill(count.begin(), count.end(), 0);
+//#pragma omp single
+//           std::fill(count.begin(), count.end(), 0);
 
 #pragma omp for
             for (int j = 0; j < k; j++) {
-                std::fill(centroids[j].dimensions.begin(), centroids[j].dimensions.end(), 0);
+                count[j]=0;
+            }
+
+
+#pragma omp for collapse(2)
+            for (int j = 0; j < k; j++) {
+                for(int h = 0; h<dimPoint; h++){
+                    centroids[j].dimensions[h] = 0;
+                }
+                //std::fill(centroids[j].dimensions.begin(), centroids[j].dimensions.end(), 0);
             }
             //Define private centroids of threads
             //std::vector<std::vector<double> > privateCentroids(k, std::vector<double>(dimPoint, 0));
-
-
-
-
 
 
 #pragma omp for

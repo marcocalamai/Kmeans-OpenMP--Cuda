@@ -10,26 +10,62 @@
 #include "KMeans_OpenMP.h"
 #include "KMeans_OpenMP2.h"
 #include "K_means_Cuda.cuh"
-#include "cuda_runtime.h"
+//#include "cuda_runtime.h"
 
 
 int main(int argc, char* argv[]) {
+// /home/marco/Programming/CLionProjects/Kmeans-OpenMP-&-Cuda/Datasets/KDDCUP04Bio.txt 2000
+
     //Txt line and Dataset
     std::string line;
     double value;
     std::vector<Point> dataset;
 
+    if (argc == 1) {
+        //std::cout << "arg ==1 \n";
+        std::random_device rd; //Will be used to obtain a seed for the random number engine
+        std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+        std::uniform_real_distribution<> dis(0.0, 1.0);
+        std::string nameDataset;
+        int pointsDataset[] = {1000, 10000, 100000, 1000000};
+        int dimensionsDataset[] = {10, 100, 1000, 10000};
+        for (auto i : pointsDataset){
+            for(auto j : dimensionsDataset) {
+                nameDataset = "/home/marco/Programming/CLionProjects/Kmeans-OpenMP-&-Cuda/Datasets/" + std::to_string(i) +"x" + std::to_string(j) + ".txt";
+                std::ifstream dataset_file(nameDataset);
+                if (!dataset_file) {
+                    std::cout << "dataset "+ std::to_string(i) +"x" + std::to_string(j) + ".txt NON trovato \n";
+
+                    std::ofstream outfile(nameDataset);
+                    for (auto numP = 0; numP < i; numP++) {
+                        for (auto dimP = 0; dimP < j; dimP++) {
+                            outfile << dis(gen) << " ";
+                        }
+                        outfile << "\n";
+                    }
+                    outfile.close();
+                    std::cout << "GENERATO file " + std::to_string(i) +"x" + std::to_string(j) + "\n";
+                }
+                std::cout << "dataset "+ std::to_string(i) +"x" + std::to_string(j) + ".txt TROVATO \n";
+            }
+        }
+        std::exit(0);
+
+    };
+
+
     if (argc != 3) {
         std::cerr << "usage: k_means <data-file> <k>" << std::endl;
         std::exit(EXIT_FAILURE);
-
     }
+
 
     std::ifstream dataset_file(argv[1]);
     if (!dataset_file) {
         std::cerr << "Could not open file: " << argv[1] << std::endl;
         std::exit(EXIT_FAILURE);
     }
+
 
     if (dataset_file.is_open()) {
         while (getline(dataset_file, line)) {
@@ -71,7 +107,7 @@ int main(int argc, char* argv[]) {
     std::vector<Point> output_Dataset;
 
 
-
+/*
     //PRINT INITIAL CENTROIDS
     //Print centroids
     std::cout << "PRINT INITIAL CENTROIDS after then dataset is load \n";
@@ -81,6 +117,7 @@ int main(int argc, char* argv[]) {
         }
         std::cout << std::endl;
     }
+*/
 
 
 
@@ -89,7 +126,7 @@ int main(int argc, char* argv[]) {
     //CHRONO START
     auto start = std::chrono::high_resolution_clock::now();
 
-    //std::tie(output_Dataset, output_Centroids) = sequential_kmeans(dataset, centroids, k);
+    std::tie(output_Dataset, output_Centroids) = sequential_kmeans(dataset, centroids, k);
 
 
 
@@ -109,7 +146,7 @@ int main(int argc, char* argv[]) {
         }
         std::cout << std::endl;
     }
-
+*/
 
 
     //************************Execution of OpenMP Kmeans************************
@@ -118,7 +155,6 @@ int main(int argc, char* argv[]) {
 
     std::tie(output_Dataset, output_Centroids) = openMP_kmeans(dataset, centroids, k);
 
-
     //CHRONO END
     finish = std::chrono::high_resolution_clock::now();
     //CHRONO TIME CALCULATION AND PRINT
@@ -126,7 +162,7 @@ int main(int argc, char* argv[]) {
     std::cout << "OPEN_MP Elapsed time: " << elapsed.count() << " s\n \n";
 
 
-
+/*
     //Print centroids
     for (int i=0; i < k; i++){
         for(int j=0; j < dimPoint; j++){
@@ -134,6 +170,7 @@ int main(int argc, char* argv[]) {
         }
         std::cout << std::endl;
     }
+*/
 
     //************************Execution of OpenMP Kmeans 2************************
     //CHRONO START
@@ -149,7 +186,7 @@ int main(int argc, char* argv[]) {
     std::cout << "OPEN_MP2 Elapsed time: " << elapsed.count() << " s\n \n";
 
 
-
+/*
     //Print centroids
     for (int i=0; i < k; i++){
         for(int j=0; j < dimPoint; j++){
@@ -157,10 +194,10 @@ int main(int argc, char* argv[]) {
         }
         std::cout << std::endl;
     }
-
-
-
 */
+
+
+
 
     //************************CUDA************************
 
@@ -192,10 +229,10 @@ int main(int argc, char* argv[]) {
 
 
     //ALLOCATE AND COPY DATASET AND CENTROIDS TO DEVICE
-    cudaMalloc((void **) &deviceDataset, size_dataset);
-    cudaMemcpy(deviceDataset, hostDataset, size_dataset, cudaMemcpyHostToDevice);
-    cudaMalloc((void **) &deviceCentroids, size_centroids);
-    cudaMemcpy(deviceCentroids, hostCentroids, size_centroids, cudaMemcpyHostToDevice);
+    CUDA_CHECK_RETURN(cudaMalloc((void **) &deviceDataset, size_dataset));
+    CUDA_CHECK_RETURN(cudaMemcpy(deviceDataset, hostDataset, size_dataset, cudaMemcpyHostToDevice));
+    CUDA_CHECK_RETURN(cudaMalloc((void **) &deviceCentroids, size_centroids));
+    CUDA_CHECK_RETURN(cudaMemcpy(deviceCentroids, hostCentroids, size_centroids, cudaMemcpyHostToDevice));
 
     short * hostAssignment;
     hostAssignment = (short *) malloc(numPoint * sizeof(short));
@@ -215,9 +252,9 @@ int main(int argc, char* argv[]) {
     std::cout << "CUDA Elapsed time: " << elapsed.count() << " s\n \n";
 
 
-    cudaMemcpy(hostCentroids, deviceCentroids, size_centroids, cudaMemcpyDeviceToHost);
+    CUDA_CHECK_RETURN(cudaMemcpy(hostCentroids, deviceCentroids, size_centroids, cudaMemcpyDeviceToHost));
 
-
+/*
     //PRINT FINAL CENTROIDS
     std::cout << "PRINT FINAL CUDA CENTROIDS \n";
     for(auto i = 0; i<k; i++){
@@ -226,15 +263,10 @@ int main(int argc, char* argv[]) {
         }
         std::cout << "\n";
     }
+*/
 
-
-    cudaFree(deviceDataset);
-    cudaFree(deviceCentroids);
-
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess) {
-        printf("Error: %s\n", cudaGetErrorString(err));
-    }
+    CUDA_CHECK_RETURN(cudaFree(deviceDataset));
+    CUDA_CHECK_RETURN(cudaFree(deviceCentroids));
 
 
     free(hostDataset);
