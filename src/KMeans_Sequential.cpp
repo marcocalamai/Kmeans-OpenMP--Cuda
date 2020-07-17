@@ -38,11 +38,6 @@ void UpdateCentroids(std::vector<Point> &dataset, std::vector<Point> &centroids,
                      const unsigned long numPoint, const unsigned long dimPoint, std::vector<int> &count) {
     std::fill(count.begin(), count.end(), 0);
     for (int j = 0; j < k; j++) {
-        //centroids[j].dimensions = zerosc
-        //
-        //
-        //
-        // ;
         std::fill(centroids[j].dimensions.begin(), centroids[j].dimensions.end(), 0);
     }
 
@@ -75,13 +70,10 @@ std::tuple<std::vector<Point>, std::vector<Point>> sequential_kmeans(std::vector
     int clusterLabel;
     double distance, minDistance;
     std::vector<int> count(k);
-    //std::vector<double> zeros(dimPoint);
+
     while (!convergence){
-
-
         //Find the nearest centroid and assign the point to that cluster
         Assignment(dataset, centroids, k, numPoint, dimPoint, clusterLabel, distance, minDistance);
-
         //Centroids update
         //First, initialize centroids to zero before update their values
         UpdateCentroids(dataset, centroids, k, numPoint, dimPoint, count);

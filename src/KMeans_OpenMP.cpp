@@ -61,14 +61,7 @@ std::tuple<std::vector<Point>,std::vector<Point>> openMP_kmeans(std::vector<Poin
                 dataset[i].clusterId = clusterLabel;
             }
 
-            //Centroids update
-            //First, initialize centroids to zero before update their values
-            //std::vector<int> privateCount(k, 0);
-            //std::fill(privateCount.begin(), privateCount.end(), 0);
 
-
-//#pragma omp single
-//           std::fill(count.begin(), count.end(), 0);
 
 #pragma omp for
             for (int j = 0; j < k; j++) {
@@ -81,37 +74,18 @@ std::tuple<std::vector<Point>,std::vector<Point>> openMP_kmeans(std::vector<Poin
                 for(int h = 0; h<dimPoint; h++){
                     centroids[j].dimensions[h] = 0;
                 }
-                //std::fill(centroids[j].dimensions.begin(), centroids[j].dimensions.end(), 0);
             }
-            //Define private centroids of threads
-            //std::vector<std::vector<double> > privateCentroids(k, std::vector<double>(dimPoint, 0));
 
 
 #pragma omp for
             for (int i = 0; i < numPoint; i++) {
                 for (int h = 0; h < dimPoint; h++) {
-                    //privateCentroids[dataset[i].clusterId][h] += dataset[i].dimensions[h];
 #pragma omp atomic
                     centroids[dataset[i].clusterId].dimensions[h] += dataset[i].dimensions[h];
                 }
-                //privateCount[dataset[i].clusterId]++;
 #pragma omp atomic
                 count[dataset[i].clusterId]++;
             }
-
-
-/*
-#pragma omp for
-            for(int j = 0; j < k; j++){
-                for (int h = 0; h < dimPoint; h++){
-#pragma omp atomic
-                    centroids[j].dimensions[h] += privateCentroids[j][h];
-                }
-#pragma omp atomic
-                count[j] += privateCount[j];
-            }
-*/
-
 
 #pragma omp for collapse(2)
             for (int j = 0; j < k; j++) {
@@ -121,7 +95,6 @@ std::tuple<std::vector<Point>,std::vector<Point>> openMP_kmeans(std::vector<Poin
                 }
             }
         }
-
 
         if (!firstIteration && checkEqualClusters2(dataset, oldDataset, numPoint)) {
             convergence = true;

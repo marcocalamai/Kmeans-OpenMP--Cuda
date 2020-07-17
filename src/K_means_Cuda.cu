@@ -112,12 +112,8 @@ void compute_distances(const double * deviceDataset, const double * deviceCentro
     if(row < constNumPoint && col < constK){
         for (int i = 0; i < constDimPoint; i++) {
             distance += pow(deviceDataset[row*constDimPoint+i] - deviceCentroids[col*constDimPoint+i], 2);
-            //printf("centroide %f ",deviceCentroids[col*constDimPoint+i]);
         }
         deviceDistances[row*constK+col] = sqrt(distance);
-        //if (deviceDistances[row*constK+col] == 0){
-        //    printf("distanza %f ",deviceDistances[row*constK+col]);
-       //}
     }
 }
 
@@ -131,14 +127,12 @@ void point_assignment(const double *deviceDistances, short *deviceAssignment){
     if (threadId < constNumPoint){
         for (auto i = 0; i < constK; i++){
             distance = deviceDistances[threadId*constK + i];
-            //printf("distanza %f ",distance);
             if(distance < min){
                 min = distance;
                 clusterLabel = i;
             }
         }
         deviceAssignment[threadId] = clusterLabel;
-        //printf(" clusterID: %d",deviceAssignment[threadId]);
     }
 }
 
@@ -159,10 +153,8 @@ void compute_sum(const double *deviceDataset, double * deviceCentroids, const sh
     unsigned int row = blockIdx.y * blockDim.y + threadIdx.y;
     if (col < constDimPoint && row < constNumPoint){
         short clusterId = deviceAssignment[row];
-        //printf(" clusterID: %d",clusterId);
         doubleAtomicAdd(&deviceCentroids[clusterId*constDimPoint +col], deviceDataset[row*constDimPoint +col]);
         atomicAdd(&deviceCount[clusterId], 1);
-        //printf(" c %f ",clusterId);
     }
 }
 
@@ -185,9 +177,7 @@ void update_centroids(double * deviceCentroids, const int * deviceCount){
     unsigned int col = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int row = blockIdx.y * blockDim.y + threadIdx.y;
     if (col < constDimPoint && row < constK) {
-        //printf(" count  %f", (deviceCount[row]));
         deviceCentroids[row * constDimPoint + col] = deviceCentroids[row * constDimPoint + col] / (double(deviceCount[row])/constDimPoint);
-        //printf(" centroide %f ",deviceCount[row]);
     }
 }
 
@@ -201,7 +191,6 @@ void update_centroids2(double * deviceCentroids, const int * deviceCount){
 
     }
 }
-
 
 
 
@@ -255,7 +244,6 @@ std::tuple<double *, short *>cuda_KMeans(double * deviceDataset, double * device
         initialize_centroids<<<dimGridInitialize, dimBlockInitialize>>>(deviceCentroids);
 
         //print_device(deviceCentroids, k,  dimPoint);
-        //return{deviceCentroids, hostAssignment};
         CUDA_CHECK_RETURN(cudaMemset(deviceCount, 0, k*sizeof(int)));
         //print_device(deviceCount, k,  1);
         cudaDeviceSynchronize();
@@ -268,10 +256,8 @@ std::tuple<double *, short *>cuda_KMeans(double * deviceDataset, double * device
         //printf("\n STAMPA DI TEST \n");
         //print_device(deviceCentroids, k,  dimPoint);
         //printf("\n");
-        //return{deviceCentroids, hostAssignment};
+
         //Compute mean: division for count
-
-
         update_centroids<<<dimGridUpdateCentroids,dimBlockUpdateCentroids>>>(deviceCentroids,deviceCount);
         //update_centroids2<<<dimGridUpdateCentroids,dimBlockUpdateCentroids>>>(deviceCentroids,deviceCount);
 
@@ -279,22 +265,7 @@ std::tuple<double *, short *>cuda_KMeans(double * deviceDataset, double * device
 
         CUDA_CHECK_RETURN(cudaMemcpy(hostAssignment, deviceAssignment, numPoint*sizeof(short), cudaMemcpyDeviceToHost));
 
-
-/*
-        std::cout << "PRINT HOST ASSIGNMENT     ";
-        for(auto i = 0; i<numPoint; i++){
-            std::cout << hostAssignment[i] << " ";
-        }
-        std::cout << "\n" ;
-
-        std::cout << "PRINT HOST OLD ASSIGNMENT ";
-        for(auto i = 0; i<numPoint; i++){
-            std::cout << hostOldAssignment[i] << " " ;
-        }
-        std::cout << "\n" ;
-*/
         //c ++;
-
 
         if (checkEqualAssignment(hostOldAssignment, hostAssignment, numPoint)){
             convergence = true;

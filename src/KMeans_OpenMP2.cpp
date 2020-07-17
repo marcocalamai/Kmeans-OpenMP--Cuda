@@ -1,8 +1,8 @@
+//Simpler OpenMP implementation, with only assignement step parallelized (more complex phase)
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
-//#include "Point.h"
-//#include <tuple>
 
 #include <cmath>
 #include "KMeans_OpenMP2.h"
@@ -61,7 +61,6 @@ std::tuple<std::vector<Point>,std::vector<Point>> openMP_kmeans2(std::vector<Poi
             //Centroids update
         std::fill(count.begin(), count.end(), 0);
         for (int j = 0; j < k; j++) {
-            //centroids[j].dimensions = zeros;
             std::fill(centroids[j].dimensions.begin(), centroids[j].dimensions.end(), 0);
         }
 

@@ -10,11 +10,9 @@
 #include "KMeans_OpenMP.h"
 #include "KMeans_OpenMP2.h"
 #include "K_means_Cuda.cuh"
-//#include "cuda_runtime.h"
 
 
 int main(int argc, char* argv[]) {
-// /home/marco/Programming/CLionProjects/Kmeans-OpenMP-&-Cuda/Datasets/KDDCUP04Bio.txt 2000
 
     //Txt line and Dataset
     std::string line;
@@ -22,7 +20,6 @@ int main(int argc, char* argv[]) {
     std::vector<Point> dataset;
 
     if (argc == 1) {
-        //std::cout << "arg ==1 \n";
         std::random_device rd; //Will be used to obtain a seed for the random number engine
         std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
         std::uniform_real_distribution<> dis(0.0, 1.0);
